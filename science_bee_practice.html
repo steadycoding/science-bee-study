@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src blob:; connect-src 'none'; form-action 'none'; frame-ancestors 'none';">
 <title>National Science Bee – Elementary Practice</title>
 <style>
 :root {
@@ -161,6 +163,32 @@ button:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
 .btn-go-nomics{background:transparent;color:var(--muted);border:1px solid #2a4166;
                padding:10px 28px;font-size:.9rem;border-radius:8px;margin-top:-6px}
 .btn-go-nomics:hover{background:#1c2e47;color:var(--text)}
+.privacy-notice{border:2px solid #c0392b;border-radius:10px;padding:16px 20px;
+                font-size:.82rem;color:#e8d5d5;line-height:1.7;text-align:left;max-width:560px;
+                background:#1f0f0f}
+.privacy-notice .pn-header{display:flex;align-items:center;gap:8px;font-size:1rem;
+                            font-weight:bold;color:#ff8080;margin-bottom:10px;letter-spacing:.5px}
+.privacy-notice ul{margin:0;padding-left:20px}
+.privacy-notice li{margin-bottom:10px}
+.privacy-notice li:last-child{margin-bottom:0}
+.privacy-notice strong{color:#fff}
+.privacy-notice .pn-safe{color:#7dfa9b;font-weight:bold}
+.privacy-notice .pn-warn{color:#ff8080;font-weight:bold}
+.privacy-notice .pn-rec{background:#0d2a0d;border:1px solid #27ae60;border-radius:6px;
+                         padding:8px 12px;margin-top:8px;color:#a8f0b8;font-size:.8rem}
+.tos-wrap{max-width:560px;width:100%}
+.tos-wrap summary{font-size:.75rem;color:var(--muted);cursor:pointer;padding:6px 2px;
+                  list-style:none;display:flex;align-items:center;gap:6px}
+.tos-wrap summary::before{content:"▶";font-size:.6rem;transition:transform .2s}
+.tos-wrap[open] summary::before{transform:rotate(90deg)}
+.tos-wrap summary:hover{color:var(--text)}
+.tos-body{border:1px solid #2a4166;border-radius:8px;padding:14px 16px;margin-top:6px;
+          font-size:.72rem;color:var(--muted);line-height:1.75;text-align:left}
+.tos-body h4{color:var(--text);font-size:.78rem;margin:12px 0 4px;letter-spacing:.5px}
+.tos-body h4:first-child{margin-top:0}
+.tos-body p{margin-bottom:8px}
+.tos-body p:last-child{margin-bottom:0}
+.tos-body strong{color:var(--text)}
 .mic-perm-msg{font-size:.8rem;color:var(--muted);margin-top:-8px}
 .mic-perm-msg.ok{color:var(--green)}
 .mic-perm-msg.err{color:#f39c12}
@@ -223,6 +251,22 @@ button:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
     <li>On the next screen, click <strong>▶ START + LISTEN</strong> to hear each question read aloud.</li>
     <li>Hit BUZZ before the <span style="color:#daa0ff">purple "For 10 points" clue</span> for a ⭐ power bonus!</li>
   </ol>
+  <div class="privacy-notice">
+    <div class="pn-header">⚠️ For Parents &amp; Supervisors — Please Read</div>
+    <ul>
+      <li>
+        <span class="pn-safe">✔ This app itself is fully local.</span> It makes zero network requests. No scores, names, answers, or question data are ever sent anywhere by this app's code.
+      </li>
+      <li>
+        <span class="pn-warn">⚠ The microphone option sends your child's voice to Google.</span> If you click "Allow Voice &amp; Begin," this app uses Chrome's built-in speech recognition feature. <strong>Google Chrome sends voice audio to Google's servers</strong> to transcribe it — this happens inside the browser, not this app, but the audio does leave your device.<br><br>
+        Google's published guarantees for this browser feature are limited. Google states audio is typically deleted within a few hours and is not used for advertising, but <strong>there is no specific published COPPA (Children's Online Privacy Protection Act) compliance commitment</strong> for this browser API, and exact data retention terms are not clearly documented.
+        <div class="pn-rec">💡 <strong>Recommendation for use with children under 13:</strong> Use No-Mic mode (button below). It is fully local, nothing leaves the device, and the app works just as well — you grade answers manually with the ✓/✗ buttons.</div>
+      </li>
+      <li>
+        <span class="pn-safe">✔ No-Mic mode is completely private.</span> No audio, no network, nothing leaves the device. This is the safest option for classroom or home use with minors.
+      </li>
+    </ul>
+  </div>
   <div class="set-picker" id="setPicker">
     <div style="font-size:.73rem;color:var(--gold);letter-spacing:2px;margin-bottom:10px">SELECT QUESTION SETS</div>
     <div class="set-picker-grid">
@@ -295,7 +339,32 @@ button:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
     </label>
   </div>
   <button class="btn-go" onclick="grantAndStart()">🎤 Allow Voice &amp; Begin</button>
-  <button class="btn-go-nomics" onclick="skipMicAndStart()">Skip — use Correct/Wrong buttons only</button>
+  <button class="btn-go-nomics" onclick="skipMicAndStart()">🔒 No Mic — Private Mode (manual grading)</button>
+
+  <details class="tos-wrap">
+    <summary>Terms of Use &amp; Liability Disclaimer</summary>
+    <div class="tos-body">
+
+      <h4>1. No Warranty</h4>
+      <p>This app is provided free of charge, as-is, for personal and educational use only, with no warranties of any kind — express or implied. Accuracy of questions, answers, and speech recognition results is not guaranteed.</p>
+
+      <h4>2. Third-Party Services</h4>
+      <p>When the microphone feature is used, voice audio is processed by <strong>Google's speech recognition service</strong> built into the Chrome browser. This app has no control over, and accepts no responsibility for, Google's data handling, retention practices, or service availability. Use of Google's service is subject to <strong>Google's own Terms of Service and Privacy Policy</strong>. This app is not affiliated with Google.</p>
+
+      <h4>3. COPPA &amp; Use with Minors</h4>
+      <p>This app is intended for educational use. If used with children under 13, a parent or guardian is responsible for supervising use and for making an informed decision about whether to enable the microphone feature. As noted in the privacy section above, Google has not published specific COPPA compliance documentation for the browser-based Web Speech API. <strong>The No-Mic mode is strongly recommended for users under 13.</strong></p>
+
+      <h4>4. No Affiliation</h4>
+      <p>This app is an unofficial study tool and is not affiliated with, endorsed by, or officially connected to the National Science Bee, Science Olympiad, or any other organization. Question content is compiled from publicly available practice materials for personal study use.</p>
+
+      <h4>5. Limitation of Liability</h4>
+      <p><strong>To the fullest extent permitted by applicable law, the creator of this app shall not be liable for any direct, indirect, incidental, or consequential damages</strong> arising from use of this app or from any data handling performed by third-party browser features (including Google's speech recognition service). Use of this app is entirely at your own risk.</p>
+
+      <h4>6. Acceptance</h4>
+      <p>By clicking either button above and proceeding to use this app, you acknowledge that you have read and agree to these terms.</p>
+
+    </div>
+  </details>
 </div>
 
 <!-- HEADER -->
@@ -2985,8 +3054,9 @@ let isBuzzPower = false;
 let activeFilter = "All";
 let audioCtx = null;
 let appReady = false; // blocks keyboard shortcuts until app is fully loaded
-let micStream = null;          // held open to keep browser mic permission across buzzes
+let micStream = null;           // held open to keep browser mic permission across buzzes
 let selectedMicDeviceId = null; // deviceId of the mic chosen by the user
+let recognitionPaused = false;  // true when session is over; suppresses onend auto-restart
 
 // TTS / answer recognition
 let recognition = null;
@@ -3129,6 +3199,14 @@ function skipMicAndStart() {
 // ── RESTART ───────────────────────────────────
 function restart() {
   stopAll();
+  // If mic was released by showEnd(), re-acquire it for the new session
+  if (recognition && recognitionPaused) {
+    recognitionPaused = false;
+    if (selectedMicDeviceId) {
+      switchMic(selectedMicDeviceId); // async; stream will be ready before first buzz
+    }
+    try { recognition.start(); } catch(e) {}
+  }
   questions = buildList();
   curIdx = 0;
   score = {correct:0, total:0, power:0};
@@ -3494,6 +3572,8 @@ function initRecognition() {
 
   recognition.onend = () => {
     // Auto-restart to keep recognition alive continuously across rounds.
+    // Skip restart when the session is intentionally over (showEnd called stopMic).
+    if (recognitionPaused) return;
     setTimeout(() => { try { recognition.start(); } catch(e) {} }, 200);
   };
 
@@ -3619,6 +3699,7 @@ function updateProg() {
 function showEnd() {
   phase = "done";
   stopAll();
+  stopMic(); // release mic and stop recognition when session ends
   document.getElementById("mainCard").style.display = "none";
   document.getElementById("progFill").style.width = "100%";
   const pct = score.total>0 ? Math.round(score.correct/score.total*100) : 0;
@@ -3637,15 +3718,37 @@ function showEnd() {
   sessionHistory.forEach((item, i) => {
     const tr = document.createElement("tr");
     tr.id = `rv-${i}`;
-    const powerNote = item.isBuzzPower && item.correct ? " ⭐" : "";
-    tr.innerHTML = `
-      <td style="color:var(--muted)">${i+1}</td>
-      <td style="font-size:.72rem;color:var(--muted)">${item.q.cat}</td>
-      <td class="rt-ans">${item.ans}</td>
-      <td class="rt-said">${item.userSaid}</td>
-      <td><span class="${item.correct?'rt-correct':'rt-wrong'}" id="rv-icon-${i}">${item.correct?'✓':'✗'}${powerNote}</span>
-          &nbsp;<button class="btn-flip" onclick="flipResult(${i})">flip</button></td>
-    `;
+
+    const tdNum = document.createElement("td");
+    tdNum.style.color = "var(--muted)";
+    tdNum.textContent = i + 1;
+
+    const tdCat = document.createElement("td");
+    tdCat.style.cssText = "font-size:.72rem;color:var(--muted)";
+    tdCat.textContent = item.q.cat;
+
+    const tdAns = document.createElement("td");
+    tdAns.className = "rt-ans";
+    tdAns.textContent = item.ans;
+
+    const tdSaid = document.createElement("td");
+    tdSaid.className = "rt-said";
+    tdSaid.textContent = item.userSaid;
+
+    const tdScore = document.createElement("td");
+    const span = document.createElement("span");
+    span.id = `rv-icon-${i}`;
+    span.className = item.correct ? "rt-correct" : "rt-wrong";
+    span.textContent = (item.correct ? "✓" : "✗") + (item.isBuzzPower && item.correct ? " ⭐" : "");
+    const btn = document.createElement("button");
+    btn.className = "btn-flip";
+    btn.textContent = "flip";
+    btn.onclick = () => flipResult(i);
+    tdScore.appendChild(span);
+    tdScore.appendChild(document.createTextNode("\u00a0"));
+    tdScore.appendChild(btn);
+
+    tr.append(tdNum, tdCat, tdAns, tdSaid, tdScore);
     tbody.appendChild(tr);
   });
 
@@ -3720,6 +3823,15 @@ function stopAll() {
 }
 function stopTTS() { if (window.speechSynthesis) { window.speechSynthesis.cancel(); ttsActive=false; } }
 
+// Called at end of session to fully release mic resources.
+// Sets recognitionPaused so onend won't auto-restart.
+function stopMic() {
+  recognitionPaused = true;
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  if (micStream)   { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  setMicStatus("off");
+}
+
 // ─────────────────────────────────────────────
 // FLASH
 // ─────────────────────────────────────────────
@@ -3744,6 +3856,13 @@ document.addEventListener("keydown", e => {
       buzz();
     }
   }
+});
+
+// ── PAGE UNLOAD CLEANUP ───────────────────────
+// Release mic resources when the tab is closed or navigated away from.
+window.addEventListener("pagehide", () => {
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  if (micStream)   { micStream.getTracks().forEach(t => t.stop()); }
 });
 
 // ── INIT ─────────────────────────────────────
