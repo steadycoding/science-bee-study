@@ -3553,6 +3553,12 @@ async function switchMic(deviceId) {
 
 // Load the Whisper model in the background (called once from grantAndStart).
 async function initLocalRecognition() {
+  // Allow tests to inject a pre-built pipeline stub via window.__whisperPipeOverride.
+  if (window.__whisperPipeOverride) {
+    whisperPipe = window.__whisperPipeOverride;
+    whisperReady = true;
+    return;
+  }
   if (whisperLoading || whisperReady) return;
   whisperLoading = true;
   try {

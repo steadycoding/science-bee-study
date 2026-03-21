@@ -348,7 +348,7 @@ test('buzzing in voice mode before model loads shows loading status message', as
   await expect(page.locator('#mainCard')).toBeVisible({ timeout: 5000 });
   await page.locator('#btnStart').click();
   await page.locator('#btnBuzz').click();
-  await expect(page.locator('#statusMsg')).toContainText(/loading|tap/i);
+  await expect(page.locator('#statusMsg')).toContainText(/loading|say your answer|mark it/i);
 });
 
 test('voice mode and no-mic mode both reach the same quiz UI', async ({ page }) => {
@@ -381,15 +381,10 @@ test('transcription result is shown in voice strip after Whisper resolves', asyn
 
   // Inject whisper mock after page load but before the app runs
   await page.addInitScript(() => {
-    // Override initLocalRecognition to immediately mark whisper as ready
-    // and install a stub pipeline
-    const _orig = window.addEventListener;
-    // Use a MutationObserver trick: patch after DOMContentLoaded
-    document.addEventListener('DOMContentLoaded', () => {
-      // Directly set the globals the app uses
-      window.whisperReady = true;
-      window.whisperPipe = async ({ raw, sampling_rate }) => ({ text: window.__whisperStubText });
-    });
+    // Inject the stub before DOMContentLoaded so initLocalRecognition picks it up.
+    // The app checks window.__whisperPipeOverride at the top of initLocalRecognition,
+    // copies it into the local whisperPipe let, and sets whisperReady = true.
+    window.__whisperPipeOverride = async ({ raw, sampling_rate }) => ({ text: window.__whisperStubText });
   });
 
   await page.reload();
