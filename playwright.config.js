@@ -4,8 +4,8 @@ const path = require('path');
 module.exports = defineConfig({
   testDir: './tests',
   fullyParallel: true,
-  retries: 0,
-  reporter: 'list',
+  retries: process.env.CI ? 2 : 0,
+  reporter: process.env.CI ? 'github' : 'list',
   use: {
     // Open the local HTML file directly — no server needed
     baseURL: `file://${path.resolve(__dirname)}`,
