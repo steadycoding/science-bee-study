@@ -261,3 +261,131 @@ test('Play Again restarts the quiz and shows main card', async ({ page }) => {
   await expect(page.locator('#endCard')).not.toBeVisible();
   await expect(page.locator('#mainCard')).toBeVisible();
 });
+
+// ─── Local AI voice mode ───────────────────────────────────────────────────
+
+test('voice mode button is present and references local AI', async ({ page }) => {
+  await expect(page.locator('button.btn-go')).toBeVisible();
+  await expect(page.locator('button.btn-go')).toContainText('Local AI');
+});
+
+test('privacy notice states audio stays on device', async ({ page }) => {
+  await expect(page.locator('.privacy-notice')).toContainText('never leaves your device');
+});
+
+test('CSP allows HuggingFace connect for model download', async ({ page }) => {
+  const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+  expect(csp).toContain('huggingface.co');
+  expect(csp).toContain('wasm-unsafe-eval');
+  expect(csp).toContain('worker-src blob:');
+});
+
+test('privacy notice does not mention Google speech servers', async ({ page }) => {
+  const noticeText = await page.locator('.privacy-notice').innerText();
+  expect(noticeText).not.toContain('Google');
+});
+
+// Helper: fake MediaStream that satisfies getTracks() without a real mic
+const fakeMicScript = () => {
+  const fakeTrack = { stop: () => {}, kind: 'audio', enabled: true };
+  const fakeStream = { getTracks: () => [fakeTrack], getAudioTracks: () => [fakeTrack] };
+  navigator.mediaDevices.getUserMedia = async () => fakeStream;
+  navigator.mediaDevices.enumerateDevices = async () => [];
+};
+
+test('voice mode entry with mocked mic shows quiz UI', async ({ page }) => {
+  await page.addInitScript(fakeMicScript);
+  await page.reload();
+  await page.locator('button.btn-go').click();
+  await expect(page.locator('#mainCard')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('#introCard')).not.toBeVisible();
+});
+
+test('buzzing in voice mode before model loads shows manual grading buttons', async ({ page }) => {
+  await page.addInitScript(() => {
+    // Silence TTS
+    window.speechSynthesis = { speak: () => {}, cancel: () => {}, getVoices: () => [], speaking: false, pending: false, paused: false };
+    window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
+    // Fake mic
+    const fakeTrack = { stop: () => {}, kind: 'audio', enabled: true };
+    const fakeStream = { getTracks: () => [fakeTrack], getAudioTracks: () => [fakeTrack] };
+    navigator.mediaDevices.getUserMedia = async () => fakeStream;
+    navigator.mediaDevices.enumerateDevices = async () => [];
+  });
+  await page.reload();
+  await page.locator('button.btn-go').click();
+  await expect(page.locator('#mainCard')).toBeVisible({ timeout: 5000 });
+  await page.locator('#btnStart').click();
+  await page.locator('#btnBuzz').click();
+  // whisperReady is false (model can't load in offline test env) → manual buttons appear
+  await expect(page.locator('#btnOk')).toBeVisible();
+  await expect(page.locator('#btnNg')).toBeVisible();
+});
+
+test('buzzing in voice mode before model loads shows loading status message', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.speechSynthesis = { speak: () => {}, cancel: () => {}, getVoices: () => [], speaking: false, pending: false, paused: false };
+    window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
+    const fakeTrack = { stop: () => {}, kind: 'audio', enabled: true };
+    const fakeStream = { getTracks: () => [fakeTrack], getAudioTracks: () => [fakeTrack] };
+    navigator.mediaDevices.getUserMedia = async () => fakeStream;
+    navigator.mediaDevices.enumerateDevices = async () => [];
+  });
+  await page.reload();
+  await page.locator('button.btn-go').click();
+  await expect(page.locator('#mainCard')).toBeVisible({ timeout: 5000 });
+  await page.locator('#btnStart').click();
+  await page.locator('#btnBuzz').click();
+  await expect(page.locator('#statusMsg')).toContainText(/loading|tap/i);
+});
+
+test('voice mode and no-mic mode both reach the same quiz UI', async ({ page }) => {
+  await page.addInitScript(fakeMicScript);
+  await page.reload();
+  await page.locator('button.btn-go').click();
+  await expect(page.locator('#btnStart')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('#btnBuzz')).toBeDisabled();
+  await expect(page.locator('#sC')).toHaveText('0');
+  await expect(page.locator('#sT')).toHaveText('0');
+});
+
+// ─── Whisper transcription path (mocked pipeline) ─────────────────────────
+
+test('transcription result is shown in voice strip after Whisper resolves', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.speechSynthesis = { speak: () => {}, cancel: () => {}, getVoices: () => [], speaking: false, pending: false, paused: false };
+    window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
+
+    // Fake mic with a real MediaStream so MediaRecorder can attach
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const dest = ctx.createMediaStreamDestination();
+    const fakeStream = dest.stream;
+    navigator.mediaDevices.getUserMedia = async () => fakeStream;
+    navigator.mediaDevices.enumerateDevices = async () => [];
+
+    // Pre-seed whisper state so the code skips loading and uses a stub
+    window.__whisperStubText = 'photosynthesis';
+  });
+
+  // Inject whisper mock after page load but before the app runs
+  await page.addInitScript(() => {
+    // Override initLocalRecognition to immediately mark whisper as ready
+    // and install a stub pipeline
+    const _orig = window.addEventListener;
+    // Use a MutationObserver trick: patch after DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', () => {
+      // Directly set the globals the app uses
+      window.whisperReady = true;
+      window.whisperPipe = async ({ raw, sampling_rate }) => ({ text: window.__whisperStubText });
+    });
+  });
+
+  await page.reload();
+  await page.locator('button.btn-go').click();
+  await expect(page.locator('#mainCard')).toBeVisible({ timeout: 5000 });
+  await page.locator('#btnStart').click();
+  await page.locator('#btnBuzz').click();
+
+  // Wait for voice strip to show the transcribed text
+  await expect(page.locator('#voiceTx')).toContainText('photosynthesis', { timeout: 10000 });
+});
