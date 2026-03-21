@@ -1,0 +1,12 @@
+{
+  "name": "science-bee-study",
+  "version": "1.0.0",
+  "description": "E2E tests for the Science Bee practice tool",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}
