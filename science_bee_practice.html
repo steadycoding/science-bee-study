@@ -3572,9 +3572,10 @@ async function initLocalRecognition() {
 // Called on each buzz to open the answer capture window.
 function startAnswerRecognition() {
   if (!micStream || !whisperReady) {
+    revealAnswer();
     document.getElementById("scoringRow").classList.add("show");
     setStatus(whisperLoading
-      ? "AI model still loading — tap ✓ or ✗ to grade."
+      ? "AI model still loading — say your answer aloud, then mark it."
       : "Say your answer aloud, then mark it.");
     return;
   }
@@ -3613,6 +3614,7 @@ function finishCapture() {
     document.getElementById("voiceStrip").classList.add("show");
     document.getElementById("voiceTx").textContent = "(Nothing heard)";
     document.getElementById("voiceMatch").textContent = "Tap ✓ or ✗ below to grade.";
+    revealAnswer();
     document.getElementById("scoringRow").classList.add("show");
     setStatus("Nothing detected — tap ✓ or ✗ to grade.");
   }
@@ -3628,6 +3630,7 @@ async function processLocalAudio() {
     document.getElementById("voiceStrip").classList.add("show");
     document.getElementById("voiceTx").textContent = "(Nothing heard)";
     document.getElementById("voiceMatch").textContent = "Tap ✓ or ✗ below to grade.";
+    revealAnswer();
     document.getElementById("scoringRow").classList.add("show");
     setStatus("Nothing detected — tap ✓ or ✗ to grade.");
     return;
@@ -3656,12 +3659,14 @@ async function processLocalAudio() {
       document.getElementById("voiceStrip").classList.add("show");
       document.getElementById("voiceTx").textContent = "(Nothing heard)";
       document.getElementById("voiceMatch").textContent = "Tap ✓ or ✗ below to grade.";
+      revealAnswer();
       document.getElementById("scoringRow").classList.add("show");
       setStatus("Nothing detected — tap ✓ or ✗ to grade.");
     }
   } catch(e) {
     console.warn("Transcription error:", e);
     setMicStatus("off");
+    revealAnswer();
     document.getElementById("scoringRow").classList.add("show");
     setStatus("Recognition error — tap ✓ or ✗ to grade.");
   }
@@ -3677,10 +3682,11 @@ function evalAnswer(transcript) {
     setStatus(`Heard: "${transcript}" — auto-graded correct.`);
     setTimeout(() => markAnswer(true), 700);
   } else {
-    // Low confidence → always require manual confirmation
-    document.getElementById("voiceMatch").textContent = "❓ Not a clear match — press ✓ or ✗ below.";
+    // Low confidence → reveal answer first, then ask student to judge
+    revealAnswer();
+    document.getElementById("voiceMatch").textContent = "❓ Not a clear match — check the answer above, then press ✓ or ✗.";
     document.getElementById("scoringRow").classList.add("show");
-    setStatus(`Heard: "${transcript}" — was that right?`);
+    setStatus(`Heard: "${transcript}" — check the answer, then mark it.`);
   }
 }
 
