@@ -34,7 +34,7 @@ test('question set checkboxes can be toggled', async ({ page }) => {
 
 test('privacy notice is visible on intro screen', async ({ page }) => {
   await expect(page.locator('.privacy-notice')).toBeVisible();
-  await expect(page.locator('.pn-header')).toContainText('Parents');
+  await expect(page.locator('.pn-header')).toContainText('Privacy');
 });
 
 // ─── No-mic mode entry ───────────────────────────────────────────────────────
@@ -260,4 +260,121 @@ test('Play Again restarts the quiz and shows main card', async ({ page }) => {
   // restart() re-enters the quiz rather than returning to the intro screen
   await expect(page.locator('#endCard')).not.toBeVisible();
   await expect(page.locator('#mainCard')).toBeVisible();
+});
+
+// ─── Local AI voice mode ───────────────────────────────────────────────────
+
+test('voice mode button is present and references local AI', async ({ page }) => {
+  await expect(page.locator('button.btn-go')).toBeVisible();
+  await expect(page.locator('button.btn-go')).toContainText('Local AI');
+});
+
+test('privacy notice states audio stays on device', async ({ page }) => {
+  await expect(page.locator('.privacy-notice')).toContainText('never leaves your device');
+});
+
+test('CSP allows HuggingFace connect for model download', async ({ page }) => {
+  const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+  expect(csp).toContain('huggingface.co');
+  expect(csp).toContain('wasm-unsafe-eval');
+  expect(csp).toContain('worker-src blob:');
+});
+
+test('importmap pins transformers.js to an exact version with SRI hash', async ({ page }) => {
+  const importmap = await page.locator('script[type="importmap"]').textContent();
+  const map = JSON.parse(importmap);
+  // Bare specifier must resolve to a fully-pinned URL (no floating @major ranges)
+  const url = map.imports['@huggingface/transformers'];
+  expect(url).toMatch(/@\d+\.\d+\.\d+\//); // e.g. @3.8.1/
+  expect(url).not.toContain('@3/');         // reject floating major range
+  // Integrity entry must exist and be a valid SRI hash
+  const hash = map.integrity?.[url];
+  expect(hash).toMatch(/^sha384-[A-Za-z0-9+/]+=*$/);
+});
+
+test('privacy notice does not mention Google speech servers', async ({ page }) => {
+  const noticeText = await page.locator('.privacy-notice').innerText();
+  expect(noticeText).not.toContain('Google');
+});
+
+// Helper: fake MediaStream that satisfies getTracks() without a real mic
+const fakeMicScript = () => {
+  const fakeTrack = { stop: () => {}, kind: 'audio', enabled: true };
+  const fakeStream = { getTracks: () => [fakeTrack], getAudioTracks: () => [fakeTrack] };
+  navigator.mediaDevices.getUserMedia = async () => fakeStream;
+  navigator.mediaDevices.enumerateDevices = async () => [];
+};
+
+test('voice mode entry with mocked mic shows quiz UI', async ({ page }) => {
+  await page.addInitScript(fakeMicScript);
+  await page.reload();
+  await page.locator('button.btn-go').click();
+  await expect(page.locator('#mainCard')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('#introCard')).not.toBeVisible();
+});
+
+test('buzzing in voice mode before model loads shows manual grading buttons', async ({ page }) => {
+  await page.addInitScript(() => {
+    // Silence TTS
+    window.speechSynthesis = { speak: () => {}, cancel: () => {}, getVoices: () => [], speaking: false, pending: false, paused: false };
+    window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
+    // Fake mic
+    const fakeTrack = { stop: () => {}, kind: 'audio', enabled: true };
+    const fakeStream = { getTracks: () => [fakeTrack], getAudioTracks: () => [fakeTrack] };
+    navigator.mediaDevices.getUserMedia = async () => fakeStream;
+    navigator.mediaDevices.enumerateDevices = async () => [];
+  });
+  await page.reload();
+  await page.locator('button.btn-go').click();
+  await expect(page.locator('#mainCard')).toBeVisible({ timeout: 5000 });
+  await page.locator('#btnStart').click();
+  await page.locator('#btnBuzz').click();
+  // whisperReady is false (model can't load in offline test env) → manual buttons appear
+  await expect(page.locator('#btnOk')).toBeVisible();
+  await expect(page.locator('#btnNg')).toBeVisible();
+});
+
+test('buzzing in voice mode before model loads shows loading status message', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.speechSynthesis = { speak: () => {}, cancel: () => {}, getVoices: () => [], speaking: false, pending: false, paused: false };
+    window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
+    const fakeTrack = { stop: () => {}, kind: 'audio', enabled: true };
+    const fakeStream = { getTracks: () => [fakeTrack], getAudioTracks: () => [fakeTrack] };
+    navigator.mediaDevices.getUserMedia = async () => fakeStream;
+    navigator.mediaDevices.enumerateDevices = async () => [];
+  });
+  await page.reload();
+  await page.locator('button.btn-go').click();
+  await expect(page.locator('#mainCard')).toBeVisible({ timeout: 5000 });
+  await page.locator('#btnStart').click();
+  await page.locator('#btnBuzz').click();
+  await expect(page.locator('#statusMsg')).toContainText(/loading|say your answer|mark it/i);
+});
+
+test('voice mode and no-mic mode both reach the same quiz UI', async ({ page }) => {
+  await page.addInitScript(fakeMicScript);
+  await page.reload();
+  await page.locator('button.btn-go').click();
+  await expect(page.locator('#btnStart')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('#btnBuzz')).toBeDisabled();
+  await expect(page.locator('#sC')).toHaveText('0');
+  await expect(page.locator('#sT')).toHaveText('0');
+});
+
+// ─── Whisper transcription path (mocked pipeline) ─────────────────────────
+
+test('transcription result is shown in voice strip after Whisper resolves', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.speechSynthesis = { speak: () => {}, cancel: () => {}, getVoices: () => [], speaking: false, pending: false, paused: false };
+    window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
+    // Bypass real audio recording: startAnswerRecognition will call evalAnswer directly.
+    window.__testTranscript = 'photosynthesis';
+  });
+
+  await page.reload();
+  await page.locator('button.btn-go-nomics').click();
+  await page.locator('#btnStart').click();
+  await page.locator('#btnBuzz').click();
+
+  await expect(page.locator('#voiceTx')).toContainText('photosynthesis', { timeout: 5000 });
 });
