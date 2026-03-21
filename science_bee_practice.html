@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src blob:; connect-src 'none'; form-action 'none'; frame-ancestors 'none';">
+      content="default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src data:; media-src blob:; connect-src https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co; form-action 'none'; frame-ancestors 'none'; worker-src blob:;">
 <title>National Science Bee – Elementary Practice</title>
 <style>
 :root {
@@ -246,24 +246,22 @@ button:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
     Then speak your answer — the app will try to grade it automatically.
   </p>
   <ol class="intro-steps">
-    <li>Click <strong>Allow Voice &amp; Begin</strong> below — your browser will ask for voice recognition access.</li>
-    <li>Click <strong>Allow</strong> in the browser popup.</li>
+    <li>Click <strong>Allow Mic &amp; Begin (Local AI)</strong> below — your browser will ask for microphone access.</li>
+    <li>Click <strong>Allow</strong> in the browser popup. A local AI model will download in the background (~40 MB, once).</li>
     <li>On the next screen, click <strong>▶ START + LISTEN</strong> to hear each question read aloud.</li>
     <li>Hit BUZZ before the <span style="color:#daa0ff">purple "For 10 points" clue</span> for a ⭐ power bonus!</li>
   </ol>
   <div class="privacy-notice">
-    <div class="pn-header">⚠️ For Parents &amp; Supervisors — Please Read</div>
+    <div class="pn-header">🔒 Privacy &amp; Data Notice</div>
     <ul>
       <li>
-        <span class="pn-safe">✔ This app itself is fully local.</span> It makes zero network requests. No scores, names, answers, or question data are ever sent anywhere by this app's code.
+        <span class="pn-safe">✔ Voice audio never leaves your device.</span> Speech recognition now uses a local AI model (OpenAI Whisper tiny) that runs entirely inside your browser via WebAssembly. Your microphone audio is processed on-device only — it is never uploaded to any server.
       </li>
       <li>
-        <span class="pn-warn">⚠ The microphone option sends your child's voice to Google.</span> If you click "Allow Voice &amp; Begin," this app uses Chrome's built-in speech recognition feature. <strong>Google Chrome sends voice audio to Google's servers</strong> to transcribe it — this happens inside the browser, not this app, but the audio does leave your device.<br><br>
-        Google's published guarantees for this browser feature are limited. Google states audio is typically deleted within a few hours and is not used for advertising, but <strong>there is no specific published COPPA (Children's Online Privacy Protection Act) compliance commitment</strong> for this browser API, and exact data retention terms are not clearly documented.
-        <div class="pn-rec">💡 <strong>Recommendation for use with children under 13:</strong> Use No-Mic mode (button below). It is fully local, nothing leaves the device, and the app works just as well — you grade answers manually with the ✓/✗ buttons.</div>
+        <span class="pn-safe">✔ One-time model download (~40 MB).</span> The first time you use voice mode, the browser downloads the Whisper model from Hugging Face. After that it is cached by your browser — no further downloads occur and the app works fully offline.
       </li>
       <li>
-        <span class="pn-safe">✔ No-Mic mode is completely private.</span> No audio, no network, nothing leaves the device. This is the safest option for classroom or home use with minors.
+        <span class="pn-safe">✔ No-Mic mode is also fully private.</span> No audio, no network, nothing leaves the device. Grade answers manually with the ✓/✗ buttons.
       </li>
     </ul>
   </div>
@@ -330,7 +328,7 @@ button:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
 
     </div>
   </div>
-  <p class="mic-perm-msg" id="permMsg">Voice recognition is used to capture your spoken answer.</p>
+  <p class="mic-perm-msg" id="permMsg">Voice answers are transcribed locally on your device — no audio is ever sent to a server.</p>
   <div id="micSelectorWrap" style="display:none;margin:10px 0">
     <label style="color:var(--muted);font-size:.85rem">Microphone:
       <select id="micDeviceSelect"
@@ -338,7 +336,7 @@ button:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
         onchange="switchMic(this.value);document.getElementById('micDeviceSettings').value=this.value"></select>
     </label>
   </div>
-  <button class="btn-go" onclick="grantAndStart()">🎤 Allow Voice &amp; Begin</button>
+  <button class="btn-go" onclick="grantAndStart()">🎤 Allow Mic &amp; Begin (Local AI)</button>
   <button class="btn-go-nomics" onclick="skipMicAndStart()">🔒 No Mic — Private Mode (manual grading)</button>
 
   <details class="tos-wrap">
@@ -348,17 +346,17 @@ button:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
       <h4>1. No Warranty</h4>
       <p>This app is provided free of charge, as-is, for personal and educational use only, with no warranties of any kind — express or implied. Accuracy of questions, answers, and speech recognition results is not guaranteed.</p>
 
-      <h4>2. Third-Party Services</h4>
-      <p>When the microphone feature is used, voice audio is processed by <strong>Google's speech recognition service</strong> built into the Chrome browser. This app has no control over, and accepts no responsibility for, Google's data handling, retention practices, or service availability. Use of Google's service is subject to <strong>Google's own Terms of Service and Privacy Policy</strong>. This app is not affiliated with Google.</p>
+      <h4>2. Speech Recognition &amp; Privacy</h4>
+      <p>When the microphone feature is used, voice audio is processed <strong>entirely on your device</strong> using the Whisper tiny model running in WebAssembly inside your browser. <strong>No audio is ever sent to any server.</strong> The Whisper model weights are downloaded once from Hugging Face (<a href="https://huggingface.co" target="_blank" rel="noopener">huggingface.co</a>) and cached locally by the browser. This app is not affiliated with Hugging Face or OpenAI.</p>
 
       <h4>3. COPPA &amp; Use with Minors</h4>
-      <p>This app is intended for educational use. If used with children under 13, a parent or guardian is responsible for supervising use and for making an informed decision about whether to enable the microphone feature. As noted in the privacy section above, Google has not published specific COPPA compliance documentation for the browser-based Web Speech API. <strong>The No-Mic mode is strongly recommended for users under 13.</strong></p>
+      <p>This app is intended for educational use. Because voice audio is processed entirely on-device and never transmitted, there are no third-party data-handling concerns associated with the microphone feature. Both Voice mode and No-Mic mode are equally private for use with minors.</p>
 
       <h4>4. No Affiliation</h4>
       <p>This app is an unofficial study tool and is not affiliated with, endorsed by, or officially connected to the National Science Bee, Science Olympiad, or any other organization. Question content is compiled from publicly available practice materials for personal study use.</p>
 
       <h4>5. Limitation of Liability</h4>
-      <p><strong>To the fullest extent permitted by applicable law, the creator of this app shall not be liable for any direct, indirect, incidental, or consequential damages</strong> arising from use of this app or from any data handling performed by third-party browser features (including Google's speech recognition service). Use of this app is entirely at your own risk.</p>
+      <p><strong>To the fullest extent permitted by applicable law, the creator of this app shall not be liable for any direct, indirect, incidental, or consequential damages</strong> arising from use of this app. Use of this app is entirely at your own risk.</p>
 
       <h4>6. Acceptance</h4>
       <p>By clicking either button above and proceeding to use this app, you acknowledge that you have read and agree to these terms.</p>
@@ -3056,16 +3054,21 @@ let audioCtx = null;
 let appReady = false; // blocks keyboard shortcuts until app is fully loaded
 let micStream = null;           // held open to keep browser mic permission across buzzes
 let selectedMicDeviceId = null; // deviceId of the mic chosen by the user
-let recognitionPaused = false;  // true when session is over; suppresses onend auto-restart
+let recognitionPaused = false;  // true when session is over; mic was released
 
-// TTS / answer recognition
-let recognition = null;
+// Local speech recognition (Whisper via transformers.js)
+let whisperPipe    = null;   // ASR pipeline, set once model loads
+let whisperReady   = false;  // true when model finished loading
+let whisperLoading = false;  // true during model download/init
+let mediaRecorder  = null;   // records mic during answer window
+let audioChunks    = [];     // accumulated MediaRecorder chunks
+
 let ttsActive = false;
 let clueIdx = 0;
 
-// Persistent recognition capture state
+// Answer capture state
 let captureAnswer = false;   // true only during the answer window
-let captureBuffer = "";      // accumulates final transcript for current answer
+let captureBuffer = "";      // unused by Whisper path but kept for compat
 let captureTimer  = null;    // fallback timeout if no speech detected
 let sessionHistory = []; // [{q, ans, userSaid, correct, isBuzzPower}]
 
@@ -3141,30 +3144,14 @@ function showApp() {
 
 async function grantAndStart() {
   const msg = document.getElementById("permMsg");
-  msg.textContent = "Requesting voice recognition permission…";
+  msg.textContent = "Requesting microphone permission…";
   msg.className = "mic-perm-msg";
 
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    msg.textContent = "Voice recognition not supported in this browser — answers graded by buttons.";
-    msg.className = "mic-perm-msg err";
-    setTimeout(() => { showApp(); appReady = true; restart(); }, 1500);
-    return;
-  }
-
   try {
-    // Briefly start and stop recognition to trigger the browser permission prompt NOW,
-    // before any question starts playing.
-    await new Promise((resolve, reject) => {
-      const warmup = new SR();
-      warmup.onstart  = () => { warmup.stop(); resolve(); };
-      warmup.onend    = resolve;
-      warmup.onerror  = (e) => {
-        if (e.error === "not-allowed") reject(e); else resolve();
-      };
-      warmup.start();
-    });
-    // Enumerate audio input devices and show the mic selector
+    // Trigger browser permission dialog and capture an initial stream
+    micStream = await navigator.mediaDevices.getUserMedia({audio:true, video:false});
+
+    // Enumerate devices now that labels are visible
     const mics = await enumerateMics();
     const introSel = document.getElementById("micDeviceSelect");
     const settingsSel = document.getElementById("micDeviceSettings");
@@ -3173,18 +3160,19 @@ async function grantAndStart() {
       populateMicSelect(mics, settingsSel);
       document.getElementById("micSelectorWrap").style.display = "block";
       document.getElementById("micSelectLabel").style.display = "";
-      // Acquire stream from the auto-selected device
+      // switchMic releases the initial stream and opens a device-specific one
       await switchMic(introSel.value);
-    } else {
-      try { micStream = await navigator.mediaDevices.getUserMedia({audio:true,video:false}); } catch(e){}
     }
-    // Start the persistent recognition instance (continuous=true, lives for whole session)
-    initRecognition();
-    msg.textContent = "✅ Voice permission granted! Select your mic below, then begin.";
+
+    msg.textContent = "✅ Mic access granted — loading local AI speech model (first use ~40 MB, cached after)…";
     msg.className = "mic-perm-msg ok";
+
+    // Load the Whisper model in the background; quiz can start before it's ready
+    initLocalRecognition();
+
     setTimeout(() => { showApp(); appReady = true; restart(); }, 1400);
   } catch(e) {
-    msg.textContent = "⚠️ Voice permission denied — use Correct / Wrong buttons to grade answers.";
+    msg.textContent = "⚠️ Mic permission denied — use Correct / Wrong buttons to grade answers.";
     msg.className = "mic-perm-msg err";
     setTimeout(() => { showApp(); appReady = true; restart(); }, 2000);
   }
@@ -3200,12 +3188,14 @@ function skipMicAndStart() {
 function restart() {
   stopAll();
   // If mic was released by showEnd(), re-acquire it for the new session
-  if (recognition && recognitionPaused) {
+  if (whisperReady && recognitionPaused) {
     recognitionPaused = false;
     if (selectedMicDeviceId) {
-      switchMic(selectedMicDeviceId); // async; stream will be ready before first buzz
+      switchMic(selectedMicDeviceId); // async; stream ready before first buzz
+    } else {
+      navigator.mediaDevices.getUserMedia({audio:true, video:false})
+        .then(s => { micStream = s; }).catch(() => {});
     }
-    try { recognition.start(); } catch(e) {}
   }
   questions = buildList();
   curIdx = 0;
@@ -3496,6 +3486,10 @@ function setMicStatus(state) {
       dot.className   = "mic-dot listen";
       label.textContent = "🎤 Listening for your answer…";
       break;
+    case "processing":
+      dot.className   = "mic-dot listen";
+      label.textContent = "⏳ Transcribing locally…";
+      break;
     case "off":
     default:
       dot.className   = "mic-dot";
@@ -3540,87 +3534,125 @@ async function switchMic(deviceId) {
 }
 
 // ─────────────────────────────────────────────
-// SPEECH RECOGNITION: PERSISTENT INSTANCE
-// Called once from grantAndStart(); reused for every answer.
+// LOCAL SPEECH RECOGNITION: Whisper via transformers.js
+// Audio is processed entirely on-device — nothing leaves the browser.
 // ─────────────────────────────────────────────
-function initRecognition() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return; // gracefully degrade to manual buttons
 
-  recognition = new SR();
-  recognition.lang = "en-US";
-  recognition.continuous = true;   // stay alive for the whole session
-  recognition.interimResults = true;
-
-  recognition.onresult = (e) => {
-    if (!captureAnswer) return;    // ignore background noise between rounds
-    let interim = "";
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) captureBuffer = e.results[i][0].transcript;
-      else interim += e.results[i][0].transcript;
-    }
-    document.getElementById("voiceStrip").classList.add("show");
-    document.getElementById("voiceTx").textContent = (captureBuffer || interim || "…");
-    // Got a definitive result — evaluate immediately, don't wait for timeout
-    if (captureBuffer) {
-      clearTimeout(captureTimer);
-      captureAnswer = false;
-      setMicStatus("off");
-      evalAnswer(captureBuffer.trim());
-    }
-  };
-
-  recognition.onend = () => {
-    // Auto-restart to keep recognition alive continuously across rounds.
-    // Skip restart when the session is intentionally over (showEnd called stopMic).
-    if (recognitionPaused) return;
-    setTimeout(() => { try { recognition.start(); } catch(e) {} }, 200);
-  };
-
-  recognition.onerror = (e) => {
-    if (e.error === "no-speech" || e.error === "aborted") return; // harmless
-    if (captureAnswer) {
-      captureAnswer = false;
-      clearTimeout(captureTimer);
-      setMicStatus("off");
-      document.getElementById("scoringRow").classList.add("show");
-      setStatus("Mic error — tap ✓ or ✗ to grade.");
-    }
-  };
-
-  try { recognition.start(); } catch(e) {}
+// Load the Whisper model in the background (called once from grantAndStart).
+async function initLocalRecognition() {
+  if (whisperLoading || whisperReady) return;
+  whisperLoading = true;
+  try {
+    const { pipeline } = await import(
+      'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3/dist/transformers.min.js'
+    );
+    whisperPipe = await pipeline(
+      'automatic-speech-recognition',
+      'onnx-community/whisper-tiny.en',
+      { dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' } }
+    );
+    whisperReady = true;
+  } catch(e) {
+    console.warn("Local speech model failed to load:", e);
+  }
+  whisperLoading = false;
 }
 
-// Called on each buzz to open the answer capture window
+// Called on each buzz to open the answer capture window.
 function startAnswerRecognition() {
-  if (!recognition) {
-    // No speech API — show scoring buttons directly
+  if (!micStream || !whisperReady) {
     document.getElementById("scoringRow").classList.add("show");
-    setStatus("Say your answer aloud, then mark it.");
+    setStatus(whisperLoading
+      ? "AI model still loading — tap ✓ or ✗ to grade."
+      : "Say your answer aloud, then mark it.");
     return;
   }
   setMicStatus("listen");
-  // Delay capture start to avoid picking up TTS audio tail
+  audioChunks = [];
+  captureAnswer = true;
+  // Short delay so TTS audio tail isn't captured
   setTimeout(() => {
-    captureBuffer = "";
-    captureAnswer = true;
+    try {
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+          ? 'audio/ogg;codecs=opus'
+          : '';
+      mediaRecorder = new MediaRecorder(micStream, mimeType ? { mimeType } : {});
+    } catch(e) {
+      captureAnswer = false;
+      document.getElementById("scoringRow").classList.add("show");
+      setStatus("Mic error — tap ✓ or ✗ to grade.");
+      return;
+    }
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = processLocalAudio;
+    mediaRecorder.start();
     captureTimer = setTimeout(finishCapture, 6000);
   }, 350);
 }
 
 function finishCapture() {
   if (!captureAnswer) return;
-  captureAnswer = false;
-  setMicStatus("off");
-  const tx = captureBuffer.trim();
-  if (tx) {
-    evalAnswer(tx);
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop(); // triggers onstop → processLocalAudio
   } else {
+    captureAnswer = false;
+    setMicStatus("off");
     document.getElementById("voiceStrip").classList.add("show");
     document.getElementById("voiceTx").textContent = "(Nothing heard)";
     document.getElementById("voiceMatch").textContent = "Tap ✓ or ✗ below to grade.";
     document.getElementById("scoringRow").classList.add("show");
     setStatus("Nothing detected — tap ✓ or ✗ to grade.");
+  }
+}
+
+async function processLocalAudio() {
+  if (!captureAnswer) { setMicStatus("off"); return; }
+  captureAnswer = false;
+  setMicStatus("processing");
+
+  if (audioChunks.length === 0) {
+    setMicStatus("off");
+    document.getElementById("voiceStrip").classList.add("show");
+    document.getElementById("voiceTx").textContent = "(Nothing heard)";
+    document.getElementById("voiceMatch").textContent = "Tap ✓ or ✗ below to grade.";
+    document.getElementById("scoringRow").classList.add("show");
+    setStatus("Nothing detected — tap ✓ or ✗ to grade.");
+    return;
+  }
+
+  try {
+    const blob = new Blob(audioChunks, { type: audioChunks[0].type || 'audio/webm' });
+    const arrayBuffer = await blob.arrayBuffer();
+
+    // Decode and resample to 16 kHz mono — required by Whisper
+    const actx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    const audioBuffer = await actx.decodeAudioData(arrayBuffer);
+    const audioData = audioBuffer.getChannelData(0);
+    actx.close();
+
+    const result = await whisperPipe({ raw: audioData, sampling_rate: 16000 });
+    // Strip leading/trailing punctuation that Whisper sometimes prepends
+    const tx = (result.text || "").trim().replace(/^[.\s]+|[.\s]+$/g, "");
+
+    setMicStatus("off");
+    if (tx) {
+      document.getElementById("voiceStrip").classList.add("show");
+      document.getElementById("voiceTx").textContent = tx;
+      evalAnswer(tx);
+    } else {
+      document.getElementById("voiceStrip").classList.add("show");
+      document.getElementById("voiceTx").textContent = "(Nothing heard)";
+      document.getElementById("voiceMatch").textContent = "Tap ✓ or ✗ below to grade.";
+      document.getElementById("scoringRow").classList.add("show");
+      setStatus("Nothing detected — tap ✓ or ✗ to grade.");
+    }
+  } catch(e) {
+    console.warn("Transcription error:", e);
+    setMicStatus("off");
+    document.getElementById("scoringRow").classList.add("show");
+    setStatus("Recognition error — tap ✓ or ✗ to grade.");
   }
 }
 
@@ -3816,19 +3848,27 @@ function playBuzzer(type) {
 function stopAll() {
   stopTTS();
   clearInterval(timerIv);
-  // Don't stop the persistent recognition instance — just cancel any active capture
   captureAnswer = false;
   if (captureTimer) { clearTimeout(captureTimer); captureTimer = null; }
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.onstop = null; // prevent processLocalAudio from running
+    mediaRecorder.stop();
+    mediaRecorder = null;
+  }
+  audioChunks = [];
   setMicStatus("off");
 }
 function stopTTS() { if (window.speechSynthesis) { window.speechSynthesis.cancel(); ttsActive=false; } }
 
 // Called at end of session to fully release mic resources.
-// Sets recognitionPaused so onend won't auto-restart.
 function stopMic() {
   recognitionPaused = true;
-  if (recognition) { try { recognition.stop(); } catch(e) {} }
-  if (micStream)   { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.onstop = null;
+    mediaRecorder.stop();
+    mediaRecorder = null;
+  }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   setMicStatus("off");
 }
 
@@ -3861,8 +3901,8 @@ document.addEventListener("keydown", e => {
 // ── PAGE UNLOAD CLEANUP ───────────────────────
 // Release mic resources when the tab is closed or navigated away from.
 window.addEventListener("pagehide", () => {
-  if (recognition) { try { recognition.stop(); } catch(e) {} }
-  if (micStream)   { micStream.getTracks().forEach(t => t.stop()); }
+  if (mediaRecorder && mediaRecorder.state === "recording") { try { mediaRecorder.stop(); } catch(e) {} }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); }
 });
 
 // ── INIT ─────────────────────────────────────
