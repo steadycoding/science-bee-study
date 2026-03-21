@@ -367,32 +367,14 @@ test('transcription result is shown in voice strip after Whisper resolves', asyn
   await page.addInitScript(() => {
     window.speechSynthesis = { speak: () => {}, cancel: () => {}, getVoices: () => [], speaking: false, pending: false, paused: false };
     window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
-
-    // Fake mic with a real MediaStream so MediaRecorder can attach
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const dest = ctx.createMediaStreamDestination();
-    const fakeStream = dest.stream;
-    navigator.mediaDevices.getUserMedia = async () => fakeStream;
-    navigator.mediaDevices.enumerateDevices = async () => [];
-
-    // Pre-seed whisper state so the code skips loading and uses a stub
-    window.__whisperStubText = 'photosynthesis';
-  });
-
-  // Inject whisper mock after page load but before the app runs
-  await page.addInitScript(() => {
-    // Inject the stub before DOMContentLoaded so initLocalRecognition picks it up.
-    // The app checks window.__whisperPipeOverride at the top of initLocalRecognition,
-    // copies it into the local whisperPipe let, and sets whisperReady = true.
-    window.__whisperPipeOverride = async ({ raw, sampling_rate }) => ({ text: window.__whisperStubText });
+    // Bypass real audio recording: startAnswerRecognition will call evalAnswer directly.
+    window.__testTranscript = 'photosynthesis';
   });
 
   await page.reload();
-  await page.locator('button.btn-go').click();
-  await expect(page.locator('#mainCard')).toBeVisible({ timeout: 5000 });
+  await page.locator('button.btn-go-nomics').click();
   await page.locator('#btnStart').click();
   await page.locator('#btnBuzz').click();
 
-  // Wait for voice strip to show the transcribed text
-  await expect(page.locator('#voiceTx')).toContainText('photosynthesis', { timeout: 10000 });
+  await expect(page.locator('#voiceTx')).toContainText('photosynthesis', { timeout: 5000 });
 });

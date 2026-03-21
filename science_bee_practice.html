@@ -3577,6 +3577,15 @@ async function initLocalRecognition() {
 
 // Called on each buzz to open the answer capture window.
 function startAnswerRecognition() {
+  // Test hook: bypass recording entirely and fire evalAnswer with a preset string.
+  if (window.__testTranscript) {
+    const tx = window.__testTranscript;
+    setMicStatus("off");
+    document.getElementById("voiceStrip").classList.add("show");
+    document.getElementById("voiceTx").textContent = tx;
+    evalAnswer(tx);
+    return;
+  }
   if (!micStream || !whisperReady) {
     revealAnswer();
     document.getElementById("scoringRow").classList.add("show");
