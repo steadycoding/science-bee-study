@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src data:; media-src blob:; connect-src https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co; form-action 'none'; frame-ancestors 'none'; worker-src blob:;">
+<!-- Import map pins the exact version and provides SRI integrity for the
+     transformers.js bundle. Browsers that support importmap integrity
+     (Chrome 112+) will reject the module if the hash doesn't match. -->
+<script type="importmap">
+{
+  "imports": {
+    "@huggingface/transformers": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.min.js"
+  },
+  "integrity": {
+    "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.min.js": "sha384-sOua6i337lNLWtuIG44PBf5JXIvhoicFClCcI4XHDe/eHW3dwhQ3Y6t6wQjfRrkT"
+  }
+}
+</script>
 <title>National Science Bee – Elementary Practice</title>
 <style>
 :root {
@@ -3543,9 +3556,7 @@ async function initLocalRecognition() {
   if (whisperLoading || whisperReady) return;
   whisperLoading = true;
   try {
-    const { pipeline } = await import(
-      'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3/dist/transformers.min.js'
-    );
+    const { pipeline } = await import('@huggingface/transformers');
     whisperPipe = await pipeline(
       'automatic-speech-recognition',
       'onnx-community/whisper-tiny.en',

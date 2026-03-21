@@ -280,6 +280,18 @@ test('CSP allows HuggingFace connect for model download', async ({ page }) => {
   expect(csp).toContain('worker-src blob:');
 });
 
+test('importmap pins transformers.js to an exact version with SRI hash', async ({ page }) => {
+  const importmap = await page.locator('script[type="importmap"]').textContent();
+  const map = JSON.parse(importmap);
+  // Bare specifier must resolve to a fully-pinned URL (no floating @major ranges)
+  const url = map.imports['@huggingface/transformers'];
+  expect(url).toMatch(/@\d+\.\d+\.\d+\//); // e.g. @3.8.1/
+  expect(url).not.toContain('@3/');         // reject floating major range
+  // Integrity entry must exist and be a valid SRI hash
+  const hash = map.integrity?.[url];
+  expect(hash).toMatch(/^sha384-[A-Za-z0-9+/]+=*$/);
+});
+
 test('privacy notice does not mention Google speech servers', async ({ page }) => {
   const noticeText = await page.locator('.privacy-notice').innerText();
   expect(noticeText).not.toContain('Google');
