@@ -34,7 +34,7 @@ test('question set checkboxes can be toggled', async ({ page }) => {
 
 test('privacy notice is visible on intro screen', async ({ page }) => {
   await expect(page.locator('.privacy-notice')).toBeVisible();
-  await expect(page.locator('.pn-header')).toContainText('Parents');
+  await expect(page.locator('.pn-header')).toContainText('Privacy');
 });
 
 // ─── No-mic mode entry ───────────────────────────────────────────────────────
