@@ -109,6 +109,15 @@ header{width:100%;max-width:920px;background:linear-gradient(135deg,var(--blue),
 .voice-transcript{font-size:1.1rem;color:#7dfa9b;min-height:26px;font-style:italic}
 .voice-match{font-size:.82rem;margin-top:6px}
 
+/* ── ANSWER INPUT (typed fallback) ── */
+.answer-input-row{display:flex;gap:.5rem;margin:.5rem 0 .75rem;align-items:center}
+.answer-input-row input{flex:1;padding:.55rem .8rem;border-radius:6px;border:2px solid var(--accent);
+  background:#0d1f36;color:var(--text);font-size:1rem;font-family:inherit;outline:none}
+.answer-input-row input:focus{border-color:var(--green)}
+.btn-submit-answer{background:var(--blue2);color:#fff;padding:.55rem 1.1rem;border-radius:6px;
+  font-size:.9rem;white-space:nowrap}
+.btn-submit-answer:hover{background:#3368c4;box-shadow:0 0 10px rgba(40,87,164,.4)}
+
 /* ── ANSWER ── */
 .ans-panel{background:#0d2b1a;border:2px solid var(--green);border-radius:8px;
            padding:14px 20px;margin-bottom:16px;display:none}
@@ -478,6 +487,13 @@ button:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
     <div class="voice-label">YOU SAID</div>
     <div class="voice-transcript" id="voiceTx">…</div>
     <div class="voice-match" id="voiceMatch"></div>
+  </div>
+
+  <!-- Typed answer input (fallback / alongside voice) -->
+  <div class="answer-input-row" id="answerInputRow" style="display:none">
+    <input type="text" id="answerInput" placeholder="Type your answer…"
+           onkeydown="if(event.key==='Enter') submitTypedAnswer()" />
+    <button class="btn-submit-answer" onclick="submitTypedAnswer()">Submit ↵</button>
   </div>
 
   <!-- Answer reveal -->
@@ -3162,7 +3178,7 @@ async function grantAndStart() {
 
   try {
     // Trigger browser permission dialog and capture an initial stream
-    micStream = await navigator.mediaDevices.getUserMedia({audio:true, video:false});
+    micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
 
     // Enumerate devices now that labels are visible
     const mics = await enumerateMics();
@@ -3206,7 +3222,7 @@ function restart() {
     if (selectedMicDeviceId) {
       switchMic(selectedMicDeviceId); // async; stream ready before first buzz
     } else {
-      navigator.mediaDevices.getUserMedia({audio:true, video:false})
+      navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false})
         .then(s => { micStream = s; }).catch(() => {});
     }
   }
@@ -3246,6 +3262,8 @@ function loadQ() {
   document.getElementById("voiceStrip").classList.remove("show");
   document.getElementById("voiceTx").textContent = "…";
   document.getElementById("voiceMatch").textContent = "";
+  document.getElementById("answerInputRow").style.display = "none";
+  document.getElementById("answerInput").value = "";
   document.getElementById("scoringRow").classList.remove("show");
   document.getElementById("btnNext").style.display = "none";
   document.getElementById("btnOk").style.display = "block";
@@ -3537,9 +3555,10 @@ async function switchMic(deviceId) {
   // Stop the previous stream so the old device is released
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   try {
-    const constraint = deviceId
-      ? { audio: { deviceId: { exact: deviceId } }, video: false }
-      : { audio: true, video: false };
+    const audioConstraints = deviceId
+      ? { deviceId: { exact: deviceId }, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      : { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+    const constraint = { audio: audioConstraints, video: false };
     micStream = await navigator.mediaDevices.getUserMedia(constraint);
   } catch(e) {
     console.warn("switchMic failed:", e);
@@ -3587,16 +3606,23 @@ function startAnswerRecognition() {
     return;
   }
   if (!micStream || !whisperReady) {
-    revealAnswer();
-    document.getElementById("scoringRow").classList.add("show");
+    // Show text input so student can type their answer before seeing the correct one
+    document.getElementById("answerInputRow").style.display = "flex";
+    document.getElementById("answerInput").value = "";
+    document.getElementById("answerInput").focus();
     setStatus(whisperLoading
-      ? "AI model still loading — say your answer aloud, then mark it."
-      : "Say your answer aloud, then mark it.");
+      ? "AI model still loading — type your answer and press Submit."
+      : "Type your answer and press Submit.");
     return;
   }
   setMicStatus("listen");
   audioChunks = [];
   captureAnswer = true;
+  // Show text input as fallback alongside voice recording
+  document.getElementById("answerInputRow").style.display = "flex";
+  document.getElementById("answerInput").value = "";
+  document.getElementById("answerInput").focus();
+  setStatus("Speak your answer — or type it below and press Submit.");
   // Short delay so TTS audio tail isn't captured
   setTimeout(() => {
     try {
@@ -3608,14 +3634,14 @@ function startAnswerRecognition() {
       mediaRecorder = new MediaRecorder(micStream, mimeType ? { mimeType } : {});
     } catch(e) {
       captureAnswer = false;
-      document.getElementById("scoringRow").classList.add("show");
-      setStatus("Mic error — tap ✓ or ✗ to grade.");
+      document.getElementById("answerInputRow").style.display = "flex";
+      setStatus("Mic error — type your answer and press Submit.");
       return;
     }
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.onstop = processLocalAudio;
     mediaRecorder.start();
-    captureTimer = setTimeout(finishCapture, 6000);
+    captureTimer = setTimeout(finishCapture, 8000);
   }, 350);
 }
 
@@ -3626,12 +3652,10 @@ function finishCapture() {
   } else {
     captureAnswer = false;
     setMicStatus("off");
-    document.getElementById("voiceStrip").classList.add("show");
-    document.getElementById("voiceTx").textContent = "(Nothing heard)";
-    document.getElementById("voiceMatch").textContent = "Tap ✓ or ✗ below to grade.";
-    revealAnswer();
-    document.getElementById("scoringRow").classList.add("show");
-    setStatus("Nothing detected — tap ✓ or ✗ to grade.");
+    document.getElementById("answerInputRow").style.display = "flex";
+    document.getElementById("answerInput").value = "";
+    document.getElementById("answerInput").focus();
+    setStatus("Nothing detected — type your answer and press Submit.");
   }
 }
 
@@ -3639,15 +3663,15 @@ async function processLocalAudio() {
   if (!captureAnswer) { setMicStatus("off"); return; }
   captureAnswer = false;
   setMicStatus("processing");
+  // Hide text input while processing voice — voice result takes over
+  document.getElementById("answerInputRow").style.display = "none";
 
   if (audioChunks.length === 0) {
     setMicStatus("off");
-    document.getElementById("voiceStrip").classList.add("show");
-    document.getElementById("voiceTx").textContent = "(Nothing heard)";
-    document.getElementById("voiceMatch").textContent = "Tap ✓ or ✗ below to grade.";
-    revealAnswer();
-    document.getElementById("scoringRow").classList.add("show");
-    setStatus("Nothing detected — tap ✓ or ✗ to grade.");
+    document.getElementById("answerInputRow").style.display = "flex";
+    document.getElementById("answerInput").value = "";
+    document.getElementById("answerInput").focus();
+    setStatus("Nothing detected — type your answer and press Submit.");
     return;
   }
 
@@ -3671,19 +3695,18 @@ async function processLocalAudio() {
       document.getElementById("voiceTx").textContent = tx;
       evalAnswer(tx);
     } else {
-      document.getElementById("voiceStrip").classList.add("show");
-      document.getElementById("voiceTx").textContent = "(Nothing heard)";
-      document.getElementById("voiceMatch").textContent = "Tap ✓ or ✗ below to grade.";
-      revealAnswer();
-      document.getElementById("scoringRow").classList.add("show");
-      setStatus("Nothing detected — tap ✓ or ✗ to grade.");
+      document.getElementById("answerInputRow").style.display = "flex";
+      document.getElementById("answerInput").value = "";
+      document.getElementById("answerInput").focus();
+      setStatus("Nothing detected — type your answer and press Submit.");
     }
   } catch(e) {
     console.warn("Transcription error:", e);
     setMicStatus("off");
-    revealAnswer();
-    document.getElementById("scoringRow").classList.add("show");
-    setStatus("Recognition error — tap ✓ or ✗ to grade.");
+    document.getElementById("answerInputRow").style.display = "flex";
+    document.getElementById("answerInput").value = "";
+    document.getElementById("answerInput").focus();
+    setStatus("Recognition error — type your answer and press Submit.");
   }
 }
 
@@ -3691,17 +3714,40 @@ function evalAnswer(transcript) {
   const correct = fuzzyMatch(transcript, questions[curIdx].ans);
   document.getElementById("voiceStrip").classList.add("show");
   document.getElementById("voiceTx").textContent = `"${transcript}"`;
+  // Always reveal answer AFTER checking, then let student confirm or override
+  revealAnswer();
   if (correct) {
-    // High-confidence match → auto-grade; no button press needed
-    document.getElementById("voiceMatch").textContent = "✅ Recognized — grading correct!";
-    setStatus(`Heard: "${transcript}" — auto-graded correct.`);
-    setTimeout(() => markAnswer(true), 700);
+    document.getElementById("voiceMatch").textContent = "✅ Sounds correct! Confirm or override below.";
+    setStatus(`Heard: "${transcript}" — confirm or override.`);
   } else {
-    // Low confidence → reveal answer first, then ask student to judge
-    revealAnswer();
     document.getElementById("voiceMatch").textContent = "❓ Not a clear match — check the answer above, then press ✓ or ✗.";
-    document.getElementById("scoringRow").classList.add("show");
     setStatus(`Heard: "${transcript}" — check the answer, then mark it.`);
+  }
+  document.getElementById("scoringRow").classList.add("show");
+}
+
+function submitTypedAnswer() {
+  // If voice is still recording, cancel it so typed answer takes precedence
+  if (captureAnswer) {
+    clearTimeout(captureTimer);
+    captureAnswer = false;
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.onstop = null; // prevent processLocalAudio from firing
+      mediaRecorder.stop();
+    }
+    setMicStatus("off");
+  }
+  document.getElementById("answerInputRow").style.display = "none";
+  const tx = document.getElementById("answerInput").value.trim();
+  if (tx) {
+    document.getElementById("voiceStrip").classList.add("show");
+    document.getElementById("voiceTx").textContent = `"${tx}"`;
+    evalAnswer(tx);
+  } else {
+    // Blank submit — student gives up; reveal answer for manual grading
+    revealAnswer();
+    document.getElementById("scoringRow").classList.add("show");
+    setStatus("No answer entered — mark it manually.");
   }
 }
 
